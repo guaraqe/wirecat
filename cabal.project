@@ -1,0 +1,4 @@
+packages:
+  ./wirecat
+  ./examples
+  ./tutorial

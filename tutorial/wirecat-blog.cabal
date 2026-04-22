@@ -1,0 +1,54 @@
+cabal-version:      3.0
+name:               wirecat-blog
+version:            0.1.0.0
+license:            BSD-3-Clause
+build-type:         Simple
+
+library
+  exposed-modules:
+      Tutorial.Category
+    , Tutorial.Example
+    , Tutorial.Label
+    , Tutorial.Mermaid
+    , Tutorial.Effects.Free
+    , Tutorial.Effects.Mixed
+    , Tutorial.Effects.MTL
+  hs-source-dirs:
+      src
+  build-depends:
+      base
+    , wirecat
+    , directory
+    , filepath
+    , process
+    , row-types
+  default-extensions:
+    ImportQualifiedPost
+  default-language: GHC2024
+  ghc-options:
+      -Wall
+
+executable tutorial-example
+  main-is:
+      Tutorial/Example.hs
+  hs-source-dirs:
+      src
+  other-modules:
+      Tutorial.Category
+    , Tutorial.Label
+    , Tutorial.Mermaid
+    , Tutorial.Effects.Free
+  build-depends:
+      base
+    , wirecat
+    , wirecat-blog
+    , directory
+    , filepath
+    , process
+    , row-types
+  default-extensions:
+    ImportQualifiedPost
+  default-language: GHC2024
+  ghc-options:
+      -Wall
+      -main-is Tutorial.Example

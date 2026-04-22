@@ -1,0 +1,254 @@
+:root {
+  --bg: #fafafa;
+  --fg: #1a1a1a;
+  --muted: #666;
+  --border: #cfcfcf;
+  --node-bg: #ffffff;
+  --node-border: #888;
+  --port-bg: #f1f1f1;
+  --accent: #7967af;
+  --accent-dark: #332f59;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 58px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+}
+
+.topbar-left {
+  position: absolute;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(50vw - 130px);
+}
+
+.topbar-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.topbar-wordmark {
+  width: min(165px, 38vw);
+  height: 34px;
+  object-fit: contain;
+}
+
+.topbar-file-picker span {
+  min-width: 136px;
+  padding: 7px 12px;
+}
+
+.topbar-filename {
+  color: var(--muted);
+  font-size: 0.9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.sidebar {
+  width: 180px;
+  border-right: 1px solid var(--border);
+  background: #fff;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.file-picker input[type="file"] {
+  display: none;
+}
+
+.file-picker span {
+  display: block;
+  cursor: pointer;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  text-align: center;
+}
+
+.file-picker span:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filename {
+  color: var(--muted);
+  font-size: 0.85em;
+  word-break: break-all;
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 0.85em;
+}
+
+.graph-menu {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+
+.graph-item {
+  text-align: left;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.9em;
+  color: var(--fg);
+}
+
+.graph-item:hover {
+  background: #f1f1f1;
+}
+
+.graph-item.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.graph-item.active:hover {
+  background: var(--accent-dark);
+}
+
+.canvas {
+  flex: 1;
+  min-height: 0;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+}
+
+.proc-node {
+  background: var(--node-bg);
+  border: 1px solid var(--node-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.node-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
+.port-row {
+  display: flex;
+  justify-content: space-around;
+  background: var(--port-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.port-row-bottom {
+  border-bottom: none;
+  border-top: 1px solid var(--border);
+}
+
+.port {
+  flex: 1;
+  text-align: center;
+  padding: 3px 4px;
+  position: relative;
+  min-width: 0;
+}
+
+.port + .port {
+  border-left: 1px solid var(--border);
+}
+
+.port-label {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--fg);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.port-handle {
+  background: transparent !important;
+  border: none !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+.react-flow__edge-text {
+  font-size: 10px;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.spline-edge-label {
+  background: var(--bg);
+  padding: 0 3px;
+  font-size: 10px;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  pointer-events: none;
+}
