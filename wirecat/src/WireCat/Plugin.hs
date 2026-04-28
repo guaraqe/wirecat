@@ -2,10 +2,10 @@
 
 module WireCat.Plugin (plugin) where
 
-import WireCat.Plugin.Records (transformRecords)
 import qualified Data.Generics as SYB
 import GHC.Hs (HsParsedModule (..))
 import qualified GHC.Plugins as Plugins
+import WireCat.Plugin.Records (transformRecords)
 
 plugin :: Plugins.Plugin
 plugin =

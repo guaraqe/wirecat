@@ -20,9 +20,6 @@ module WireCat.Graph
   )
 where
 
-import WireCat.Free
-import WireCat.Label (ToLabel, labelizeFree)
-import qualified WireCat.Label as Label
 import Control.Monad.State.Strict (State, runState, state)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Kind (Type)
@@ -43,6 +40,9 @@ import Data.Row.Records (Rec)
 import qualified Data.Text as Text
 import GHC.Generics (Generic)
 import Type.Reflection (Typeable, typeRep)
+import WireCat.Free
+import WireCat.Label (ToLabel, labelizeFree)
+import qualified WireCat.Label as Label
 
 type NodeId = String
 
@@ -186,7 +186,7 @@ outputPlugs nodeDef =
       { wireName = portName,
         wireSource = Plug {node = nodeId nodeDef, attr = portName}
       }
-    | portName <- Map.keys (output nodeDef)
+  | portName <- Map.keys (output nodeDef)
   ]
 
 rowPortMap :: forall r. (Forall r Typeable) => Map AttrName TypeName

@@ -5,17 +5,17 @@
 
 module WireCat.Test.Dot where
 
-import WireCat.Dot
-import WireCat.Free
-import WireCat.Graph
-import WireCat.Label
-import WireCat.Records
 import qualified Data.GraphViz.Attributes.Complete as DotAttr
 import Data.List (isInfixOf)
 import Data.Row.Internal (Empty)
 import Data.Row.Records hiding (compose)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (assertBool, testCase)
+import WireCat.Dot
+import WireCat.Free
+import WireCat.Graph
+import WireCat.Label
+import WireCat.Records
 
 data Operation a b where
   Cast :: Operation (Rec Empty) (Rec ("casted" .== ()))

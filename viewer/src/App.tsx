@@ -83,6 +83,7 @@ export default function App() {
   const [file, setFile] = useState<GraphFile | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [selected, setSelected] = useState<string>("");
+  const [selectedNodeId, setSelectedNodeId] = useState<string>("");
   const [rfNodes, setRfNodes] = useState<RFNode[]>([]);
   const [rfEdges, setRfEdges] = useState<RFEdge[]>([]);
   const [error, setError] = useState<string>("");
@@ -91,6 +92,9 @@ export default function App() {
     () => (file ? Object.keys(file.graphs) : []),
     [file],
   );
+  const selectedGraph = file && selected ? file.graphs[selected] : null;
+  const selectedNode =
+    selectedGraph?.nodes.find((node) => node.nodeId === selectedNodeId) ?? null;
 
   const onPick = useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
     const f = ev.target.files?.[0];
@@ -133,6 +137,10 @@ export default function App() {
     };
   }, [file, selected]);
 
+  useEffect(() => {
+    setSelectedNodeId("");
+  }, [file, selected]);
+
   return (
     <div className="app">
       <header className="topbar">
@@ -152,6 +160,7 @@ export default function App() {
       </header>
       <div className="body">
         <aside className="sidebar">
+          <h2 className="panel-title">Graphs</h2>
           {error && <div className="error">{error}</div>}
           {graphNames.length > 0 && (
             <nav className="graph-menu">
@@ -175,6 +184,8 @@ export default function App() {
               edges={rfEdges}
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
+              onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+              onPaneClick={() => setSelectedNodeId("")}
               fitView
               proOptions={{ hideAttribution: true }}
             >
@@ -187,7 +198,49 @@ export default function App() {
             </div>
           )}
         </div>
+        <aside className="details-panel">
+          <h2 className="panel-title">Node Info</h2>
+          {selectedNode ? (
+            <>
+              <h3 className="details-title">{selectedNode.name}</h3>
+              <section className="details-section">
+                <h3>Inputs</h3>
+                <PortTable ports={selectedNode.input} emptyText="No inputs" />
+              </section>
+              <section className="details-section">
+                <h3>Outputs</h3>
+                <PortTable ports={selectedNode.output} emptyText="No outputs" />
+              </section>
+            </>
+          ) : (
+            <div className="details-placeholder">Select a node.</div>
+          )}
+        </aside>
       </div>
+    </div>
+  );
+}
+
+function PortTable({
+  ports,
+  emptyText,
+}: {
+  ports: Record<string, string>;
+  emptyText: string;
+}) {
+  const entries = Object.entries(ports);
+  if (entries.length === 0) {
+    return <div className="port-empty">{emptyText}</div>;
+  }
+
+  return (
+    <div className="port-table">
+      {entries.map(([name, type]) => (
+        <div className="port-detail" key={name}>
+          <div className="port-detail-name">{name}</div>
+          <div className="port-detail-type">{type}</div>
+        </div>
+      ))}
     </div>
   );
 }

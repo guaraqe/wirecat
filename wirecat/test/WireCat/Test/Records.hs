@@ -5,13 +5,13 @@
 
 module WireCat.Test.Records where
 
-import WireCat.Free
-import WireCat.Records
 import Data.Functor.Identity (Identity (..))
 import Data.Row.Internal (Empty)
 import Data.Row.Records hiding (compose)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
+import WireCat.Free
+import WireCat.Records
 
 data Operation a b where
   MakeX :: Operation (Rec Empty) (Rec ("x" .== Int))

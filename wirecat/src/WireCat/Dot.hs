@@ -14,7 +14,6 @@ module WireCat.Dot
   )
 where
 
-import WireCat.Graph (AttrName, Edge (..), Graph (..), Node (..), NodeId, Plug (..), TypeName)
 import Data.Char (isAlphaNum)
 import qualified Data.GraphViz as GraphViz
 import qualified Data.GraphViz.Attributes.Complete as DotAttr
@@ -23,6 +22,7 @@ import qualified Data.GraphViz.Types.Generalised as DotGraph
 import qualified Data.GraphViz.Types.Monadic as Dot
 import qualified Data.Map.Strict as Map
 import qualified Data.Text.Lazy as Text
+import WireCat.Graph (AttrName, Edge (..), Graph (..), Node (..), NodeId, Plug (..), TypeName)
 
 data DotOptions = DotOptions
   { graphName :: Text.Text,

@@ -88,10 +88,10 @@ body {
 }
 
 .sidebar {
-  width: 180px;
+  width: 280px;
   border-right: 1px solid var(--border);
   background: #fff;
-  padding: 12px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -131,7 +131,7 @@ body {
 .graph-menu {
   display: flex;
   flex-direction: column;
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .graph-item {
@@ -161,7 +161,84 @@ body {
 
 .canvas {
   flex: 1;
+  min-width: 0;
   min-height: 0;
+}
+
+.details-panel {
+  width: 280px;
+  border-left: 1px solid var(--border);
+  background: #fff;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.panel-title {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.details-title {
+  margin: 0 0 18px;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.details-section + .details-section {
+  margin-top: 22px;
+}
+
+.details-section h3 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.details-placeholder,
+.port-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.port-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.port-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 0.86rem;
+}
+
+.port-detail + .port-detail {
+  border-top: 1px solid var(--border);
+}
+
+.port-detail-name,
+.port-detail-type {
+  overflow-wrap: anywhere;
+}
+
+.port-detail-name {
+  font-weight: 600;
+}
+
+.port-detail-type {
+  color: var(--muted);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
 }
 
 .placeholder {

@@ -14,13 +14,13 @@ module WireCat.Free
   )
 where
 
+import Data.Row.Dictionaries (FreeForall)
+import Data.Row.Records hiding (compose)
+import Type.Reflection (Typeable)
 import WireCat.Records
   ( Interpret (..),
     RecordCategory (..),
   )
-import Data.Row.Dictionaries (FreeForall)
-import Data.Row.Records hiding (compose)
-import Type.Reflection (Typeable)
 import Prelude hiding (id)
 
 data Free op r s where

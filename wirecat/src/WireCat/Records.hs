@@ -1,16 +1,16 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE ConstraintKinds #-}
 
 module WireCat.Records
   ( RecordCategory (..),
     KleisliRec (..),
     Interpret (..),
     pickField,
-    (:>)
+    (:>),
   )
 where
 

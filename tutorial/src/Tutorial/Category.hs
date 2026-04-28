@@ -8,10 +8,10 @@ module Tutorial.Category
   )
 where
 
-import WireCat.Free
-import WireCat.Records (compose)
 import Tutorial.Label
 import Tutorial.Mermaid (Edge (..), Mermaid (..), Node (..))
+import WireCat.Free
+import WireCat.Records (compose)
 
 --------------------------------------------------------------------------------
 -- Mermaid
