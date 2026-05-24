@@ -31,7 +31,11 @@ wordCount = proc R {} -> do
 ```
 
 That same definition can be run with a concrete interpreter, captured as a free
-categorical term, or exported as DOT, SVG, and JSON for the React viewer.
+categorical term, or exported as DOT, SVG, and JSON for the React viewer:
+
+<p align="center">
+  <img src="diagram.png" alt="WireCat" width="420">
+</p>
 
 ## Commands
 
