@@ -6,7 +6,7 @@
 
 `wirecat` is a GHC plugin and small library for writing typed categorical
 wiring diagrams with a restricted fragment of Haskell `proc` notation. A
-single pipeline can be interpreted as executable code or rendered as a graph.
+single pipeline can be interpreted as executable code or rendered as a graph. Read the motivation for this project [here](https://guaraqe.com/posts/2026-05-24-why-cartesian-categories.html).
 
 The notation currently covers the cartesian part of the language: composition,
 projection, product-like combination, field relabeling, and primitive
