@@ -5,7 +5,9 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fplugin=WireCat #-}
@@ -31,6 +33,7 @@ import Options.Applicative
 import System.Directory (copyFile, createDirectoryIfMissing)
 import System.FilePath ((</>))
 import WireCat
+import WireCat.QQ (effect)
 
 -- File copy pipeline ---------------------------------------------------------
 
@@ -86,63 +89,15 @@ fileCopy = proc R {} -> do
 
 -- Word count pipeline --------------------------------------------------------
 
-data WordCount a b where
-  -- | Prompt for the input file path.
-  ReadPath ::
-    WordCount
-      (Rec Empty)
-      (Rec ("path" .== FilePath))
-  -- | Load the file contents from the path.
-  LoadText ::
-    WordCount
-      (Rec ("path" .== FilePath))
-      (Rec ("text" .== String))
-  -- | Count whitespace-delimited words in the text.
-  CountWords ::
-    WordCount
-      (Rec ("text" .== String))
-      (Rec ("words" .== Int))
-  -- | Count newline-delimited lines in the text.
-  CountLines ::
-    WordCount
-      (Rec ("text" .== String))
-      (Rec ("lines" .== Int))
-  -- | Count characters in the text.
-  CountChars ::
-    WordCount
-      (Rec ("text" .== String))
-      (Rec ("chars" .== Int))
-  -- | Write the word, line, and character counts to a report file.
-  WriteReport ::
-    WordCount
-      (Rec ("path" .== FilePath .+ "words" .== Int .+ "lines" .== Int .+ "chars" .== Int))
-      (Rec Empty)
-
-deriving instance Show (WordCount a b)
-
-instance ToLabel WordCount
-
-readPath :: (WordCount :> cat) => cat Empty ("path" .== FilePath)
-readPath = interpret ReadPath
-
-loadText :: (WordCount :> cat) => cat ("path" .== FilePath) ("text" .== String)
-loadText = interpret LoadText
-
-countWords :: (WordCount :> cat) => cat ("text" .== String) ("words" .== Int)
-countWords = interpret CountWords
-
-countLines :: (WordCount :> cat) => cat ("text" .== String) ("lines" .== Int)
-countLines = interpret CountLines
-
-countChars :: (WordCount :> cat) => cat ("text" .== String) ("chars" .== Int)
-countChars = interpret CountChars
-
-writeReport ::
-  (WordCount :> cat) =>
-  cat
-    ("path" .== FilePath .+ "words" .== Int .+ "lines" .== Int .+ "chars" .== Int)
-    Empty
-writeReport = interpret WriteReport
+[effect|
+WordCount
+  ReadPath    :: {} -> { path :: FilePath }
+  LoadText    :: { path :: FilePath } -> { text :: String }
+  CountWords  :: { text :: String } -> { words :: Int }
+  CountLines  :: { text :: String } -> { lines :: Int }
+  CountChars  :: { text :: String } -> { chars :: Int }
+  WriteReport :: { path :: FilePath, words :: Int, lines :: Int, chars :: Int } -> {}
+|]
 
 instance Interpret (KleisliRec IO) WordCount where
   --

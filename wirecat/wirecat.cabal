@@ -25,7 +25,9 @@ library
     WireCat.Json
     WireCat.Label
     WireCat.Plugin
+    WireCat.QQ
     WireCat.Records
+    WireCat.TH
 
   other-modules:
     GHC.Compat.All
@@ -43,6 +45,7 @@ library
     , mtl         ^>=2.3
     , row-types   ^>=1.0
     , syb         ^>=0.7.3
+    , template-haskell >=2.23 && <2.24
     , text        >=2.0 && <2.2
 
 test-suite test
