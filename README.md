@@ -20,14 +20,24 @@ operations. Case analysis is the next missing piece for the bicartesian side.
 
 import WireCat
 
+[effect|
+WordCount
+  ReadPath    :: {} -> { path :: FilePath }
+  LoadText    :: { path :: FilePath } -> { text :: String }
+  CountWords  :: { text :: String } -> { words :: Int }
+  CountLines  :: { text :: String } -> { lines :: Int }
+  CountChars  :: { text :: String } -> { chars :: Int }
+  WriteReport :: { path :: FilePath, words :: Int, lines :: Int, chars :: Int } -> {}
+|]
+
 wordCount :: WordCount :> cat => cat Empty Empty
 wordCount = proc R {} -> do
-  R {path} <- interpret ReadPath -< R {}
-  R {text} <- interpret LoadText -< R {path}
-  R {words} <- interpret CountWords -< R {text}
-  R {lines} <- interpret CountLines -< R {text}
-  R {chars} <- interpret CountChars -< R {text}
-  interpret WriteReport -< R {path, words, lines, chars}
+  R {path} <- readPath -< R {}
+  R {text} <- loadText -< R {path}
+  R {words} <- countWords -< R {text}
+  R {lines} <- countLines -< R {text}
+  R {chars} <- countChars -< R {text}
+  writeReport -< R {path, words, lines, chars}
 ```
 
 That same definition can be run with a concrete interpreter, captured as a free
