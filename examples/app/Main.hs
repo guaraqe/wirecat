@@ -99,6 +99,15 @@ WordCount
   WriteReport :: { path :: FilePath, words :: Int, lines :: Int, chars :: Int } -> {}
 |]
 
+wordCount :: (WordCount :> cat) => cat Empty Empty
+wordCount = proc R {} -> do
+  R {path} <- readPath -< R {}
+  R {text} <- loadText -< R {path}
+  R {words} <- countWords -< R {text}
+  R {lines} <- countLines -< R {text}
+  R {chars} <- countChars -< R {text}
+  writeReport -< R {path, words, lines, chars}
+
 instance Interpret (KleisliRec IO) WordCount where
   --
   interpret ReadPath = KleisliRec $ \_ -> do
@@ -128,15 +137,6 @@ instance Interpret (KleisliRec IO) WordCount where
           "chars: " ++ show (r .! #chars)
         ]
     pure empty
-
-wordCount :: (WordCount :> cat) => cat Empty Empty
-wordCount = proc R {} -> do
-  R {path} <- readPath -< R {}
-  R {text} <- loadText -< R {path}
-  R {words} <- countWords -< R {text}
-  R {lines} <- countLines -< R {text}
-  R {chars} <- countChars -< R {text}
-  writeReport -< R {path, words, lines, chars}
 
 -- CLI ------------------------------------------------------------------------
 
