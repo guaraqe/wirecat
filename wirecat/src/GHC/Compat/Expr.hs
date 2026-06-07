@@ -27,7 +27,10 @@ module GHC.Compat.Expr
     hsVarPs,
     hsAppsPs,
     hsParPs,
+    hsOpAppPs,
     hsOverLabelPs,
+    hsVarPatPs,
+    mkHsLam,
     rdrNameOcc,
   )
 where
@@ -49,9 +52,18 @@ hsAppsPs l = foldl' (\f x -> L (noAnnSrcSpan l) (HsApp noExtField f x))
 hsParPs :: SrcSpan -> LHsExpr GhcPs -> LHsExpr GhcPs
 hsParPs l e = L (noAnnSrcSpan l) (HsPar (EpTok noAnn, EpTok noAnn) e)
 
+hsOpAppPs :: SrcSpan -> LHsExpr GhcPs -> RdrName -> LHsExpr GhcPs -> LHsExpr GhcPs
+hsOpAppPs l lhs op rhs =
+  L
+    (noAnnSrcSpan l)
+    (OpApp noExtField lhs (hsVarPs l op) rhs)
+
 hsOverLabelPs :: SrcSpan -> String -> LHsExpr GhcPs
 hsOverLabelPs l s =
   L (noAnnSrcSpan l) (HsOverLabel NoSourceText (Plugins.mkFastString s))
+
+hsVarPatPs :: SrcSpan -> RdrName -> LPat GhcPs
+hsVarPatPs l n = L (noAnnSrcSpan l) (VarPat noExtField (L (noAnnSrcSpan l) n))
 
 rdrNameOcc :: String -> RdrName
 rdrNameOcc = RdrName.mkRdrUnqual . GHC.mkVarOcc

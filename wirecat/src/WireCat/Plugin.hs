@@ -5,7 +5,11 @@ module WireCat.Plugin (plugin) where
 import qualified Data.Generics as SYB
 import GHC.Hs (HsParsedModule (..))
 import qualified GHC.Plugins as Plugins
-import WireCat.Plugin.Records (transformRecords)
+import WireCat.Plugin.Records
+  ( transformHandlerMatch,
+    transformRecordExpr,
+    transformRecords,
+  )
 
 plugin :: Plugins.Plugin
 plugin =
@@ -22,5 +26,8 @@ parsedAction ::
 parsedAction _args _modSum result = do
   let parsed = Plugins.parsedResultModule result
       hsmod = hpm_module parsed
-      hsmod' = SYB.everywhere (SYB.mkT transformRecords) hsmod
+      procRewritten = SYB.everywhere (SYB.mkT transformRecords) hsmod
+      patternsRewritten =
+        SYB.everywhere (SYB.mkT transformHandlerMatch) procRewritten
+      hsmod' = SYB.everywhere (SYB.mkT transformRecordExpr) patternsRewritten
   pure result {Plugins.parsedResultModule = parsed {hpm_module = hsmod'}}

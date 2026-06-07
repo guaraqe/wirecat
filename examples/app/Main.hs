@@ -112,29 +112,29 @@ instance Interpret (KleisliRec IO) WordCount where
   --
   interpret ReadPath = KleisliRec $ \_ -> do
     putStr "Path: "
-    p <- getLine
-    pure (#path .== p)
+    path <- getLine
+    pure R {path}
   --
-  interpret LoadText = KleisliRec $ \r -> do
-    t <- readFile (r .! #path)
-    pure (#text .== t)
+  interpret LoadText = KleisliRec $ \R {path} -> do
+    text <- readFile path
+    pure R {text}
   --
-  interpret CountWords = KleisliRec $ \r ->
-    pure (#words .== length (words (r .! #text)))
+  interpret CountWords = KleisliRec $ \R {text} ->
+    pure R {words = length (words text)}
   --
-  interpret CountLines = KleisliRec $ \r ->
-    pure (#lines .== length (lines (r .! #text)))
+  interpret CountLines = KleisliRec $ \R {text} ->
+    pure R {lines = length (lines text)}
   --
-  interpret CountChars = KleisliRec $ \r ->
-    pure (#chars .== length (r .! #text))
+  interpret CountChars = KleisliRec $ \R {text} ->
+    pure R {chars = length text}
   --
-  interpret WriteReport = KleisliRec $ \r -> do
+  interpret WriteReport = KleisliRec $ \R {path, words, lines, chars} -> do
     putStr $
       unlines
-        [ "path: " ++ r .! #path,
-          "words: " ++ show (r .! #words),
-          "lines: " ++ show (r .! #lines),
-          "chars: " ++ show (r .! #chars)
+        [ "path: " ++ path,
+          "words: " ++ show words,
+          "lines: " ++ show lines,
+          "chars: " ++ show chars
         ]
     pure empty
 

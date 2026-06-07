@@ -768,11 +768,11 @@
         "tmp-postgres": "tmp-postgres"
       },
       "locked": {
-        "lastModified": 1780724169,
-        "narHash": "sha256-DgY3Pi8J4vSV6nl71e0ySv6S7j2f08CNb03bKYgJv3c=",
+        "lastModified": 1780826057,
+        "narHash": "sha256-OuNpHk2UjZSLoPQ2ELX7OAMdrEakJR6L0l2ZT+2DiDA=",
         "owner": "atelier-hub",
         "repo": "tricorder",
-        "rev": "b758065a0db12f8b6cbc9b2a2be2698c2348b9c9",
+        "rev": "26dda67e19b577675de5b339317f8af3edbc99ad",
         "type": "github"
       },
       "original": {

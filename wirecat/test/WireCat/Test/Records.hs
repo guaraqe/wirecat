@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fplugin=WireCat #-}
 
 module WireCat.Test.Records where
 
@@ -28,11 +29,25 @@ program =
       (inject MakeX)
       (inject MakeY)
 
+punnedHandler ::
+  KleisliRec Identity ("x" .== Int) ("x" .== Int)
+punnedHandler = KleisliRec $ \R {x} -> Identity R {x}
+
+explicitHandler ::
+  KleisliRec Identity ("x" .== Int) ("x" .== Int)
+explicitHandler = KleisliRec $ \R {x = input} -> Identity R {x = input + 1}
+
 tests :: TestTree
 tests =
   testGroup
     "Records"
     [ testCase "free record category interpretation" $
         let KleisliRec f = foldFree interpretOperation program
-         in runIdentity (f empty) @?= (#x .== 42)
+         in runIdentity (f empty) @?= (#x .== 42),
+      testCase "punned R handler syntax" $
+        let KleisliRec f = punnedHandler
+         in runIdentity (f (#x .== 42)) @?= (#x .== 42),
+      testCase "explicit R handler syntax" $
+        let KleisliRec f = explicitHandler
+         in runIdentity (f (#x .== 42)) @?= (#x .== 43)
     ]
