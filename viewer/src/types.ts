@@ -21,6 +21,8 @@ export interface Graph {
   nodes: GraphNode[];
   edges: GraphEdge[];
   location?: string | null;
+  graphInput?: Record<string, string>;
+  graphOutput?: Record<string, string>;
 }
 
 export interface GraphFile {

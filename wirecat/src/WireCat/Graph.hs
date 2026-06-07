@@ -98,7 +98,9 @@ instance ToJSON Edge
 data Graph a b = Graph
   { nodes :: [Node],
     edges :: [Edge],
-    location :: Maybe String
+    location :: Maybe String,
+    graphInput :: Map AttrName TypeName,
+    graphOutput :: Map AttrName TypeName
   }
   deriving (Eq, Generic, Show)
 
@@ -160,7 +162,9 @@ eraseGraph graph =
   Graph
     { nodes = nodes graph,
       edges = edges graph,
-      location = location graph
+      location = location graph,
+      graphInput = graphInput graph,
+      graphOutput = graphOutput graph
     }
 
 fromFreeLabel ::
@@ -172,7 +176,9 @@ fromFreeLabel free =
   Graph
     { nodes = reverse compiledNodes,
       edges = reverse compiledEdges,
-      location = Nothing
+      location = Nothing,
+      graphInput = rowPortMap @r,
+      graphOutput = rowPortMap @s
     }
   where
     (_, (_, compiledNodes, compiledEdges)) =

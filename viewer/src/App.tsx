@@ -3,6 +3,7 @@ import {
   Background,
   Controls,
   ReactFlow,
+  useReactFlow,
   type Edge as RFEdge,
   type Node as RFNode,
 } from "@xyflow/react";
@@ -22,6 +23,19 @@ const logoUrl = new URL("./assets/wirecat-logo-only.svg", import.meta.url).href;
 const wordmarkUrl = new URL("./assets/wirecat-text-only.svg", import.meta.url).href;
 const nodeTypes = { proc: ProcNode };
 const edgeTypes = { spline: SplineEdge };
+
+function FitGraph({ graphKey }: { graphKey: string }) {
+  const { fitView } = useReactFlow();
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      void fitView({ padding: 0.2, duration: 250 });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [fitView, graphKey]);
+
+  return null;
+}
 
 function nodeByIdMap(nodes: GraphNode[]): Record<string, GraphNode> {
   return Object.fromEntries(nodes.map((n) => [n.nodeId, n]));
@@ -133,7 +147,38 @@ function inlineGraphNode(parent: Graph, nodeId: string, child: Graph): Graph {
       ...passthroughEdges,
     ],
     location: parent.location,
+    graphInput: parent.graphInput,
+    graphOutput: parent.graphOutput,
   };
+}
+
+function PortSignature({
+  label,
+  ports,
+}: {
+  label: string;
+  ports: Record<string, string> | undefined;
+}) {
+  const entries = Object.entries(ports ?? {});
+  return (
+    <span className="graph-signature-side">
+      <span className="graph-signature-label">{label}</span>
+      {entries.length === 0 ? (
+        <span className="graph-signature-empty">{"{}"}</span>
+      ) : (
+        entries.map(([name, type]) => (
+          <span className="graph-signature-port" key={name}>
+            <span>{name}</span>
+            <span>: {type}</span>
+          </span>
+        ))
+      )}
+    </span>
+  );
+}
+
+function formatPortCount(count: number, label: string): string {
+  return `${count} ${label}${count === 1 ? "" : "s"}`;
 }
 
 async function toReactFlow(graph: Graph): Promise<{
@@ -195,15 +240,32 @@ export default function App() {
   const [fileName, setFileName] = useState<string>("");
   const [selected, setSelected] = useState<string>("");
   const [selectedNodeId, setSelectedNodeId] = useState<string>("");
+  const [graphQuery, setGraphQuery] = useState("");
+  const [expandedGraphs, setExpandedGraphs] = useState<Set<string>>(new Set());
   const [displayGraph, setDisplayGraph] = useState<Graph | null>(null);
   const [rfNodes, setRfNodes] = useState<RFNode[]>([]);
   const [rfEdges, setRfEdges] = useState<RFEdge[]>([]);
+  const [layoutVersion, setLayoutVersion] = useState(0);
   const [error, setError] = useState<string>("");
 
   const graphNames = useMemo(
     () => (file ? Object.keys(file.graphs) : []),
     [file],
   );
+  const visibleGraphNames = useMemo(() => {
+    const query = graphQuery.trim().toLocaleLowerCase();
+    if (!file || !query) return graphNames;
+    return graphNames.filter((name) => {
+      const graph = file.graphs[name];
+      const argumentNames = [
+        ...Object.keys(graph.graphInput ?? {}),
+        ...Object.keys(graph.graphOutput ?? {}),
+      ];
+      return [name, ...argumentNames].some((value) =>
+        value.toLocaleLowerCase().includes(query),
+      );
+    });
+  }, [file, graphNames, graphQuery]);
   const selectedGraph = file && selected ? file.graphs[selected] : null;
   const selectedNode =
     displayGraph?.nodes.find((node) => node.nodeId === selectedNodeId) ?? null;
@@ -220,8 +282,10 @@ export default function App() {
         }
         setFile(parsed);
         setError("");
+        setGraphQuery("");
         const first = Object.keys(parsed.graphs)[0] ?? "";
         setSelected(first);
+        setExpandedGraphs(new Set(first ? [first] : []));
       })
       .catch((e: unknown) => {
         setError(String(e));
@@ -245,6 +309,7 @@ export default function App() {
       if (cancelled) return;
       setRfNodes(res.nodes);
       setRfEdges(res.edges);
+      setLayoutVersion((version) => version + 1);
     });
     return () => {
       cancelled = true;
@@ -277,18 +342,97 @@ export default function App() {
           <h2 className="panel-title">Graphs</h2>
           {error && <div className="error">{error}</div>}
           {graphNames.length > 0 && (
-            <nav className="graph-menu">
-              {graphNames.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={`graph-item${name === selected ? " active" : ""}`}
-                  onClick={() => setSelected(name)}
-                >
-                  {name}
-                </button>
-              ))}
-            </nav>
+            <>
+              <label className="graph-search">
+                <span className="visually-hidden">Search pipelines</span>
+                <input
+                  type="search"
+                  value={graphQuery}
+                  onChange={(event) => setGraphQuery(event.target.value)}
+                  placeholder="Search pipelines or arguments"
+                />
+              </label>
+              <nav className="graph-menu">
+                {visibleGraphNames.map((name) => (
+                  <div
+                    key={name}
+                    className={`graph-item${name === selected ? " active" : ""}`}
+                  >
+                    <div className="graph-item-header">
+                      <button
+                        type="button"
+                        className="graph-select"
+                        onClick={() => {
+                          setSelected(name);
+                          setExpandedGraphs((current) => {
+                            const next = new Set(current);
+                            next.add(name);
+                            return next;
+                          });
+                        }}
+                      >
+                        <span className="graph-item-name">{name}</span>
+                        {!expandedGraphs.has(name) && (
+                          <span className="graph-item-counts">
+                            {formatPortCount(
+                              Object.keys(file?.graphs[name]?.graphInput ?? {})
+                                .length,
+                              "input",
+                            )}
+                            ,{" "}
+                            {formatPortCount(
+                              Object.keys(file?.graphs[name]?.graphOutput ?? {})
+                                .length,
+                              "output",
+                            )}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="graph-disclosure"
+                        aria-label={
+                          expandedGraphs.has(name)
+                            ? `Collapse ${name}`
+                            : `Expand ${name}`
+                        }
+                        aria-expanded={expandedGraphs.has(name)}
+                        onClick={() =>
+                          setExpandedGraphs((current) => {
+                            const next = new Set(current);
+                            if (next.has(name)) {
+                              next.delete(name);
+                            } else {
+                              next.add(name);
+                            }
+                            return next;
+                          })
+                        }
+                      >
+                        {expandedGraphs.has(name) ? "-" : "+"}
+                      </button>
+                    </div>
+                    {expandedGraphs.has(name) && (
+                      <div className="graph-item-signature">
+                        <PortSignature
+                          label="Input"
+                          ports={file?.graphs[name]?.graphInput}
+                        />
+                        <PortSignature
+                          label="Output"
+                          ports={file?.graphs[name]?.graphOutput}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {visibleGraphNames.length === 0 && (
+                  <div className="graph-search-empty">
+                    No matching pipelines.
+                  </div>
+                )}
+              </nav>
+            </>
           )}
         </aside>
         <div className="canvas">
@@ -301,8 +445,10 @@ export default function App() {
               onNodeClick={(_, node) => setSelectedNodeId(node.id)}
               onPaneClick={() => setSelectedNodeId("")}
               fitView
+              fitViewOptions={{ padding: 0.2 }}
               proOptions={{ hideAttribution: true }}
             >
+              <FitGraph graphKey={`${selected}:${layoutVersion}`} />
               <Background />
               <Controls />
             </ReactFlow>

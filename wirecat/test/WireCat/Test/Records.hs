@@ -106,4 +106,6 @@ tests =
         assertBool
           "empty graph has no boundary nodes"
           (all ((== Nothing) . boundary) (nodes graph))
+        graphInput graph @?= Map.empty
+        graphOutput graph @?= Map.empty
     ]
