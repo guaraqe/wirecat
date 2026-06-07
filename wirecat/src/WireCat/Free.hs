@@ -29,6 +29,12 @@ data Free op r s where
     (Forall r Typeable, Forall s Typeable) =>
     op (Rec r) (Rec s) ->
     Free op r s
+  NamedR ::
+    (Forall r Typeable, Forall s Typeable) =>
+    String ->
+    Maybe String ->
+    Free op r s ->
+    Free op r s
   ComposeR :: Free op s t -> Free op r s -> Free op r t
   ProjectR ::
     (Subset r s, FreeForall r, Forall r Typeable, Forall s Typeable) =>
@@ -60,6 +66,7 @@ hoist ::
   Free op' r s
 hoist _ IdentityR = IdentityR
 hoist f (LiftR op) = LiftR (f op)
+hoist f (NamedR name location inner) = NamedR name location (hoist f inner)
 hoist f (ComposeR left right) =
   ComposeR (hoist f left) (hoist f right)
 hoist _ ProjectR = ProjectR
@@ -74,6 +81,9 @@ foldFree ::
   cat r s
 foldFree _ IdentityR = identity
 foldFree f (LiftR op) = f op
+foldFree f (NamedR name Nothing inner) = wrap name (foldFree f inner)
+foldFree f (NamedR name (Just location) inner) =
+  wrapAt name location (foldFree f inner)
 foldFree f (ComposeR left right) =
   compose (foldFree f left) (foldFree f right)
 foldFree _ ProjectR = project
@@ -84,6 +94,8 @@ foldFree _ (RelabelR old new) = relabel old new
 instance RecordCategory (Free op) where
   identity = IdentityR
   compose = ComposeR
+  wrap name = NamedR name Nothing
+  wrapAt name location = NamedR name (Just location)
   project = ProjectR
   combine = CombineR
   relabel = RelabelR

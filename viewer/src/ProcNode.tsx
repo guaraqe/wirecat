@@ -3,6 +3,8 @@ import { handleId } from "./layout";
 
 export interface ProcNodeData {
   name: string;
+  subgraph?: string | null;
+  boundary?: "InputBoundary" | "OutputBoundary" | null;
   inputs: Array<{ attr: string; type: string }>;
   outputs: Array<{ attr: string; type: string }>;
   [key: string]: unknown;
@@ -10,8 +12,15 @@ export interface ProcNodeData {
 
 export function ProcNode({ data }: NodeProps) {
   const d = data as ProcNodeData;
+  const classes = [
+    "proc-node",
+    d.subgraph ? "subpipeline-node" : "",
+    d.boundary ? "boundary-node" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <div className="proc-node">
+    <div className={classes}>
       <div className="port-row port-row-top">
         {d.inputs.map((p) => (
           <div key={p.attr} className="port">
@@ -25,7 +34,10 @@ export function ProcNode({ data }: NodeProps) {
           </div>
         ))}
       </div>
-      <div className="node-title">{d.name}</div>
+      <div className="node-title">
+        {d.name}
+        {d.subgraph && <span className="subpipeline-marker">subpipeline</span>}
+      </div>
       <div className="port-row port-row-bottom">
         {d.outputs.map((p) => (
           <div key={p.attr} className="port">

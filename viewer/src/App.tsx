@@ -27,6 +27,115 @@ function nodeByIdMap(nodes: GraphNode[]): Record<string, GraphNode> {
   return Object.fromEntries(nodes.map((n) => [n.nodeId, n]));
 }
 
+function inlineGraphNode(parent: Graph, nodeId: string, child: Graph): Graph {
+  const target = parent.nodes.find((node) => node.nodeId === nodeId);
+  if (!target) return parent;
+
+  const prefix = `${nodeId}/`;
+  const inputBoundary = child.nodes.find(
+    (node) => node.boundary === "InputBoundary",
+  );
+  const outputBoundary = child.nodes.find(
+    (node) => node.boundary === "OutputBoundary",
+  );
+  const boundaryIds = new Set(
+    [inputBoundary?.nodeId, outputBoundary?.nodeId].filter(
+      (id): id is string => Boolean(id),
+    ),
+  );
+  const childNodes = child.nodes
+    .filter((node) => !boundaryIds.has(node.nodeId))
+    .map((node) => ({
+    ...node,
+    nodeId: `${prefix}${node.nodeId}`,
+    }));
+  const internalEdges = child.edges.filter(
+    (edge) =>
+      !boundaryIds.has(edge.source.node) && !boundaryIds.has(edge.target.node),
+  );
+  const childEdges = internalEdges.map((edge) => ({
+    source: { ...edge.source, node: `${prefix}${edge.source.node}` },
+    target: { ...edge.target, node: `${prefix}${edge.target.node}` },
+  }));
+  const inputTargets = (attr: string) =>
+    child.edges
+      .filter(
+        (edge) =>
+          edge.source.node === inputBoundary?.nodeId &&
+          edge.source.attr === attr &&
+          edge.target.node !== outputBoundary?.nodeId,
+      )
+      .map((edge) => ({ ...edge.target, node: `${prefix}${edge.target.node}` }));
+  const outputSources = (attr: string) =>
+    child.edges
+      .filter(
+        (edge) =>
+          edge.target.node === outputBoundary?.nodeId &&
+          edge.target.attr === attr &&
+          edge.source.node !== inputBoundary?.nodeId,
+      )
+      .map((edge) => ({ ...edge.source, node: `${prefix}${edge.source.node}` }));
+
+  const retainedEdges = parent.edges.filter(
+    (edge) => edge.source.node !== nodeId && edge.target.node !== nodeId,
+  );
+  const incomingEdges = parent.edges
+    .filter((edge) => edge.target.node === nodeId)
+    .flatMap((edge) =>
+      inputTargets(edge.target.attr).map((targetPlug) => ({
+        source: edge.source,
+        target: targetPlug,
+      })),
+    );
+  const outgoingEdges = parent.edges
+    .filter((edge) => edge.source.node === nodeId)
+    .flatMap((edge) =>
+      outputSources(edge.source.attr).map((sourcePlug) => ({
+        source: sourcePlug,
+        target: edge.target,
+      })),
+    );
+  const passthroughEdges = child.edges
+    .filter(
+      (edge) =>
+        edge.source.node === inputBoundary?.nodeId &&
+        edge.target.node === outputBoundary?.nodeId,
+    )
+    .flatMap((childEdge) => {
+      const parentInputs = parent.edges.filter(
+        (edge) =>
+          edge.target.node === nodeId &&
+          edge.target.attr === childEdge.source.attr,
+      );
+      const parentOutputs = parent.edges.filter(
+        (edge) =>
+          edge.source.node === nodeId &&
+          edge.source.attr === childEdge.target.attr,
+      );
+      return parentInputs.flatMap((inputEdge) =>
+        parentOutputs.map((outputEdge) => ({
+          source: inputEdge.source,
+          target: outputEdge.target,
+        })),
+      );
+    });
+
+  return {
+    nodes: [
+      ...parent.nodes.filter((node) => node.nodeId !== nodeId),
+      ...childNodes,
+    ],
+    edges: [
+      ...retainedEdges,
+      ...childEdges,
+      ...incomingEdges,
+      ...outgoingEdges,
+      ...passthroughEdges,
+    ],
+    location: parent.location,
+  };
+}
+
 async function toReactFlow(graph: Graph): Promise<{
   nodes: RFNode[];
   edges: RFEdge[];
@@ -53,6 +162,8 @@ async function toReactFlow(graph: Graph): Promise<{
       height: nodeHeight(n),
       data: {
         name: n.name,
+        subgraph: n.subgraph,
+        boundary: n.boundary,
         inputs: Object.entries(n.input).map(([attr, type]) => ({ attr, type })),
         outputs: Object.entries(n.output).map(([attr, type]) => ({ attr, type })),
       },
@@ -84,6 +195,7 @@ export default function App() {
   const [fileName, setFileName] = useState<string>("");
   const [selected, setSelected] = useState<string>("");
   const [selectedNodeId, setSelectedNodeId] = useState<string>("");
+  const [displayGraph, setDisplayGraph] = useState<Graph | null>(null);
   const [rfNodes, setRfNodes] = useState<RFNode[]>([]);
   const [rfEdges, setRfEdges] = useState<RFEdge[]>([]);
   const [error, setError] = useState<string>("");
@@ -94,7 +206,7 @@ export default function App() {
   );
   const selectedGraph = file && selected ? file.graphs[selected] : null;
   const selectedNode =
-    selectedGraph?.nodes.find((node) => node.nodeId === selectedNodeId) ?? null;
+    displayGraph?.nodes.find((node) => node.nodeId === selectedNodeId) ?? null;
 
   const onPick = useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
     const f = ev.target.files?.[0];
@@ -119,15 +231,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!file || !selected) {
+    setDisplayGraph(selectedGraph);
+  }, [selectedGraph]);
+
+  useEffect(() => {
+    if (!displayGraph) {
       setRfNodes([]);
       setRfEdges([]);
       return;
     }
-    const graph = file.graphs[selected];
-    if (!graph) return;
     let cancelled = false;
-    toReactFlow(graph).then((res) => {
+    toReactFlow(displayGraph).then((res) => {
       if (cancelled) return;
       setRfNodes(res.nodes);
       setRfEdges(res.edges);
@@ -135,7 +249,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [file, selected]);
+  }, [displayGraph]);
 
   useEffect(() => {
     setSelectedNodeId("");
@@ -211,6 +325,35 @@ export default function App() {
                 <h3>Outputs</h3>
                 <PortTable ports={selectedNode.output} emptyText="No outputs" />
               </section>
+              {selectedNode.subgraph && file?.graphs[selectedNode.subgraph] && (
+                <section className="details-section subpipeline-actions">
+                  <h3>Subpipeline</h3>
+                  {file.graphs[selectedNode.subgraph].location && (
+                    <div className="subpipeline-location">
+                      {file.graphs[selectedNode.subgraph].location}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSelected(selectedNode.subgraph ?? "")}
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const child = file.graphs[selectedNode.subgraph ?? ""];
+                      if (!displayGraph || !child) return;
+                      setDisplayGraph(
+                        inlineGraphNode(displayGraph, selectedNode.nodeId, child),
+                      );
+                      setSelectedNodeId("");
+                    }}
+                  >
+                    Inline
+                  </button>
+                </section>
+              )}
             </>
           ) : (
             <div className="details-placeholder">Select a node.</div>

@@ -31,6 +31,8 @@ toLabel op =
 labelizeFree :: (ToLabel op) => Free op r s -> Free Label r s
 labelizeFree IdentityR = IdentityR
 labelizeFree (LiftR op) = LiftR (toLabel op)
+labelizeFree (NamedR name location inner) =
+  NamedR name location (labelizeFree inner)
 labelizeFree (ComposeR left right) = ComposeR (labelizeFree left) (labelizeFree right)
 labelizeFree ProjectR = ProjectR
 labelizeFree (CombineR left right) = CombineR (labelizeFree left) (labelizeFree right)

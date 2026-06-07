@@ -42,8 +42,8 @@ export function nodeWidth(n: GraphNode): number {
   return Math.max(MIN_NODE_WIDTH, Math.max(inputs, outputs, 1) * PORT_WIDTH);
 }
 
-export function nodeHeight(_: GraphNode): number {
-  return NODE_HEIGHT;
+export function nodeHeight(node: GraphNode): number {
+  return node.boundary ? 64 : NODE_HEIGHT;
 }
 
 export async function computeLayout(

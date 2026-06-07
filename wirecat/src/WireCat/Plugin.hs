@@ -7,6 +7,7 @@ import GHC.Hs (HsParsedModule (..))
 import qualified GHC.Plugins as Plugins
 import WireCat.Plugin.Records
   ( transformHandlerMatch,
+    transformNamedBinding,
     transformRecordExpr,
     transformRecords,
   )
@@ -26,7 +27,8 @@ parsedAction ::
 parsedAction _args _modSum result = do
   let parsed = Plugins.parsedResultModule result
       hsmod = hpm_module parsed
-      procRewritten = SYB.everywhere (SYB.mkT transformRecords) hsmod
+      named = SYB.everywhere (SYB.mkT transformNamedBinding) hsmod
+      procRewritten = SYB.everywhere (SYB.mkT transformRecords) named
       patternsRewritten =
         SYB.everywhere (SYB.mkT transformHandlerMatch) procRewritten
       hsmod' = SYB.everywhere (SYB.mkT transformRecordExpr) patternsRewritten

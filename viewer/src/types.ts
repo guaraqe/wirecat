@@ -13,11 +13,14 @@ export interface GraphNode {
   name: string;
   input: Record<string, string>;
   output: Record<string, string>;
+  subgraph?: string | null;
+  boundary?: "InputBoundary" | "OutputBoundary" | null;
 }
 
 export interface Graph {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  location?: string | null;
 }
 
 export interface GraphFile {

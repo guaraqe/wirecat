@@ -12,11 +12,13 @@ module WireCat.Graph
   ( NodeId,
     AttrName,
     TypeName,
+    Boundary (..),
     Node (..),
     Plug (..),
     Edge (..),
     Graph (..),
     toGraph,
+    toGraphs,
   )
 where
 
@@ -54,13 +56,24 @@ data Node = Node
   { nodeId :: NodeId,
     name :: String,
     input :: Map AttrName TypeName,
-    output :: Map AttrName TypeName
+    output :: Map AttrName TypeName,
+    subgraph :: Maybe String,
+    boundary :: Maybe Boundary
   }
   deriving (Eq, Generic, Show)
 
 instance FromJSON Node
 
 instance ToJSON Node
+
+data Boundary
+  = InputBoundary
+  | OutputBoundary
+  deriving (Eq, Generic, Show)
+
+instance FromJSON Boundary
+
+instance ToJSON Boundary
 
 data Plug = Plug
   { node :: NodeId,
@@ -84,7 +97,8 @@ instance ToJSON Edge
 
 data Graph a b = Graph
   { nodes :: [Node],
-    edges :: [Edge]
+    edges :: [Edge],
+    location :: Maybe String
   }
   deriving (Eq, Generic, Show)
 
@@ -92,19 +106,98 @@ instance FromJSON (Graph a b)
 
 instance ToJSON (Graph a b)
 
-toGraph :: forall op r s. (ToLabel op) => Free op r s -> Graph (Rec r) (Rec s)
-toGraph = fromFreeLabel . labelizeFree
+toGraph ::
+  forall op r s.
+  (ToLabel op, Forall r Typeable, Forall s Typeable) =>
+  Free op r s ->
+  Graph (Rec r) (Rec s)
+toGraph free =
+  case labelizeFree free of
+    NamedR _ sourceLocation inner ->
+      (fromFreeLabel inner) {location = sourceLocation}
+    labeled -> fromFreeLabel labeled
 
-fromFreeLabel :: Free Label.Label r s -> Graph (Rec r) (Rec s)
+toGraphs ::
+  forall op r s.
+  (ToLabel op, Forall r Typeable, Forall s Typeable) =>
+  Free op r s ->
+  Map String (Graph () ())
+toGraphs free =
+  case labelizeFree free of
+    NamedR graphName sourceLocation inner ->
+      collectGraphs graphName sourceLocation inner
+    labeled -> collectGraphs "main" Nothing labeled
+
+collectGraphs ::
+  (Forall r Typeable, Forall s Typeable) =>
+  String ->
+  Maybe String ->
+  Free Label.Label r s ->
+  Map String (Graph () ())
+collectGraphs rootName sourceLocation root =
+  Map.insert
+    rootName
+    (eraseGraph ((fromFreeLabel root) {location = sourceLocation}))
+    (nestedGraphs root)
+
+nestedGraphs :: Free Label.Label r s -> Map String (Graph () ())
+nestedGraphs IdentityR = Map.empty
+nestedGraphs (LiftR _) = Map.empty
+nestedGraphs (NamedR graphName sourceLocation inner) =
+  Map.insert
+    graphName
+    (eraseGraph ((fromFreeLabel inner) {location = sourceLocation}))
+    (nestedGraphs inner)
+nestedGraphs (ComposeR left right) =
+  nestedGraphs left `Map.union` nestedGraphs right
+nestedGraphs ProjectR = Map.empty
+nestedGraphs (CombineR left right) =
+  nestedGraphs left `Map.union` nestedGraphs right
+nestedGraphs (RelabelR _ _) = Map.empty
+
+eraseGraph :: Graph a b -> Graph () ()
+eraseGraph graph =
+  Graph
+    { nodes = nodes graph,
+      edges = edges graph,
+      location = location graph
+    }
+
+fromFreeLabel ::
+  forall r s.
+  (Forall r Typeable, Forall s Typeable) =>
+  Free Label.Label r s ->
+  Graph (Rec r) (Rec s)
 fromFreeLabel free =
   Graph
     { nodes = reverse compiledNodes,
-      edges = reverse compiledEdges
+      edges = reverse compiledEdges,
+      location = Nothing
     }
   where
     (_, (_, compiledNodes, compiledEdges)) =
       flip runState (0 :: Int, [], []) $
-        build free []
+        compileGraph free
+
+compileGraph ::
+  forall r s.
+  (Forall r Typeable, Forall s Typeable) =>
+  Free Label.Label r s ->
+  State BuildState ()
+compileGraph free = do
+  inputs <-
+    if Map.null (rowPortMap @r)
+      then pure []
+      else do
+        inputNode <- freshNode (boundaryNode @r InputBoundary)
+        addNode inputNode
+        pure (outputPlugs inputNode)
+  outputs <- build free inputs
+  if Map.null (rowPortMap @s)
+    then pure ()
+    else do
+      _ <- instantiateNode (boundaryNode @s OutputBoundary) outputs
+      pure ()
 
 data Wire = Wire
   { wireName :: AttrName,
@@ -117,6 +210,8 @@ build :: forall r s. Free Label.Label r s -> [Wire] -> State BuildState [Wire]
 build IdentityR inputs = pure inputs
 build (LiftR label) inputs =
   instantiateNode (primitiveNode label) inputs
+build (NamedR graphName _ _) inputs =
+  instantiateNode (namedNode @r @s graphName) inputs
 build (ComposeR left right) inputs =
   build right inputs >>= build left
 build ProjectR inputs =
@@ -164,7 +259,50 @@ primitiveNode label nextId =
     { nodeId = "n" ++ show nextId,
       name = Label.operationLabel label,
       input = rowPortMap @r,
-      output = rowPortMap @s
+      output = rowPortMap @s,
+      subgraph = Nothing,
+      boundary = Nothing
+    }
+
+namedNode ::
+  forall r s.
+  (Forall r Typeable, Forall s Typeable) =>
+  String ->
+  Int ->
+  Node
+namedNode graphName nextId =
+  Node
+    { nodeId = "n" ++ show nextId,
+      name = graphName,
+      input = rowPortMap @r,
+      output = rowPortMap @s,
+      subgraph = Just graphName,
+      boundary = Nothing
+    }
+
+boundaryNode ::
+  forall r.
+  (Forall r Typeable) =>
+  Boundary ->
+  Int ->
+  Node
+boundaryNode nodeBoundary nextId =
+  Node
+    { nodeId = "n" ++ show nextId,
+      name =
+        case nodeBoundary of
+          InputBoundary -> "input"
+          OutputBoundary -> "output",
+      input =
+        case nodeBoundary of
+          InputBoundary -> Map.empty
+          OutputBoundary -> rowPortMap @r,
+      output =
+        case nodeBoundary of
+          InputBoundary -> rowPortMap @r
+          OutputBoundary -> Map.empty,
+      subgraph = Nothing,
+      boundary = Just nodeBoundary
     }
 
 zipInputs :: Node -> [Wire] -> [Edge]

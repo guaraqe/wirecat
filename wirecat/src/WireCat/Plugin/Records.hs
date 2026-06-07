@@ -2,6 +2,7 @@
 
 module WireCat.Plugin.Records
   ( transformHandlerMatch,
+    transformNamedBinding,
     transformRecordExpr,
     transformRecords,
   )
@@ -10,9 +11,11 @@ where
 import Control.Monad (zipWithM)
 import qualified Data.Set as Set
 import GHC.Compat.Expr
+import GHC.Data.FastString (mkFastString)
 import GHC.Hs
 import qualified GHC.Plugins as Plugins
 import qualified GHC.Types.Name.Reader as RdrName
+import GHC.Types.SourceText (SourceText (NoSourceText))
 import GHC.Types.SrcLoc (unLoc)
 import GHC.Utils.Outputable (ppr, showSDocUnsafe)
 
@@ -30,6 +33,55 @@ composeM :: Morph -> Morph -> Morph
 composeM MId g = g
 composeM f MId = f
 composeM f g = MCompose f g
+
+-- | Wrap directly-bound proc expressions with their source binding name.
+transformNamedBinding :: HsBind GhcPs -> HsBind GhcPs
+transformNamedBinding bind@FunBind {fun_id = L _ name, fun_matches = matches} =
+  bind {fun_matches = mapMatchGroup (occStr name) matches}
+transformNamedBinding bind@PatBind {pat_lhs = pat, pat_rhs = rhs} =
+  case unLoc (stripParPat pat) of
+    VarPat _ (L _ name) -> bind {pat_rhs = mapNamedGRHSs (occStr name) rhs}
+    _ -> bind
+transformNamedBinding bind = bind
+
+mapMatchGroup ::
+  String ->
+  MatchGroup GhcPs (LHsExpr GhcPs) ->
+  MatchGroup GhcPs (LHsExpr GhcPs)
+mapMatchGroup name matches@MG {mg_alts = L loc alts} =
+  matches
+    { mg_alts =
+        L loc [L matchLoc match {m_grhss = mapNamedGRHSs name (m_grhss match)} | L matchLoc match <- alts]
+    }
+
+mapNamedGRHSs ::
+  String ->
+  GRHSs GhcPs (LHsExpr GhcPs) ->
+  GRHSs GhcPs (LHsExpr GhcPs)
+mapNamedGRHSs name grhss@GRHSs {grhssGRHSs = rhss} =
+  grhss {grhssGRHSs = map wrapGRHS rhss}
+  where
+    wrapGRHS (L loc (GRHS x guards body))
+      | isProcExpr body =
+          L loc (GRHS x guards (wrapExpr name (ppLoc (getLocA body)) body))
+    wrapGRHS grhs = grhs
+
+isProcExpr :: LHsExpr GhcPs -> Bool
+isProcExpr expr = case unLoc (stripParExpr expr) of
+  HsProc {} -> True
+  _ -> False
+
+wrapExpr :: String -> String -> LHsExpr GhcPs -> LHsExpr GhcPs
+wrapExpr name sourceLocation body =
+  let loc = getLocA body
+      stringExpr value =
+        L
+          (noAnnSrcSpan loc)
+          (HsLit noExtField (HsString NoSourceText (mkFastString value)))
+   in hsAppsPs
+        loc
+        (hsVarPs loc (rdrNameOcc "wrapAt"))
+        [stringExpr name, stringExpr sourceLocation, body]
 
 -- | Entry point: rewrite any @proc ... -> ...@ expression; leave others alone.
 transformRecords :: LHsExpr GhcPs -> LHsExpr GhcPs

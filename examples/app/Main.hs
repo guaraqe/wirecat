@@ -103,10 +103,19 @@ wordCount :: (WordCount :> cat) => cat Empty Empty
 wordCount = proc R {} -> do
   R {path} <- readPath -< R {}
   R {text} <- loadText -< R {path}
+  R {words, lines, chars} <- textStats -< R {text}
+  writeReport -< R {path, words, lines, chars}
+
+textStats ::
+  (WordCount :> cat) =>
+  cat
+    ("text" .== String)
+    ("words" .== Int .+ "lines" .== Int .+ "chars" .== Int)
+textStats = proc R {text} -> do
   R {words} <- countWords -< R {text}
   R {lines} <- countLines -< R {text}
   R {chars} <- countChars -< R {text}
-  writeReport -< R {path, words, lines, chars}
+  identity -< R {words, lines, chars}
 
 instance Interpret (KleisliRec IO) WordCount where
   --
@@ -181,12 +190,12 @@ renderGraph prog = do
       let g = toGraph @FileCopy fileCopy
       writeDotFile dotFile g
       _ <- writeSvgFile svgFile g
-      writeJsonFile jsonFile (Map.singleton "main" (toJSON g))
+      writeJsonFile jsonFile (Map.map toJSON (toGraphs @FileCopy fileCopy))
     WordCountP -> do
       let g = toGraph @WordCount wordCount
       writeDotFile dotFile g
       _ <- writeSvgFile svgFile g
-      writeJsonFile jsonFile (Map.singleton "main" (toJSON g))
+      writeJsonFile jsonFile (Map.map toJSON (toGraphs @WordCount wordCount))
   putStrLn $ "Wrote " ++ dotFile
   putStrLn $ "Wrote " ++ svgFile
   putStrLn $ "Wrote " ++ jsonFile

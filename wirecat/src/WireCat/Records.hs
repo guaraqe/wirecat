@@ -25,6 +25,20 @@ class RecordCategory cat where
 
   compose :: cat s t -> cat r s -> cat r t
 
+  wrap ::
+    (Forall r Typeable, Forall s Typeable) =>
+    String ->
+    cat r s ->
+    cat r s
+
+  wrapAt ::
+    (Forall r Typeable, Forall s Typeable) =>
+    String ->
+    String ->
+    cat r s ->
+    cat r s
+  wrapAt name _ = wrap name
+
   project ::
     (Subset r s, FreeForall r, Forall r Typeable, Forall s Typeable) =>
     cat s r
@@ -55,6 +69,8 @@ instance (Monad m) => RecordCategory (KleisliRec m) where
 
   compose (KleisliRec f) (KleisliRec g) =
     KleisliRec $ \x -> g x >>= f
+
+  wrap _ morph = morph
 
   project = KleisliRec $ \r -> pure (restrict r)
 
